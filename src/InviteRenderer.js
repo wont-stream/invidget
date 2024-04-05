@@ -1,6 +1,6 @@
 const svgdom = require('svgdom')
 const SVG = require('@svgdotjs/svg.js')
-const TextToSVG = require('text-to-svg')
+const TextToSVG = require("@naari3/text-to-svg")
 const Discord = require('./Discord.js')
 
 SVG.extend([SVG.Path, SVG.Circle], {
@@ -15,8 +15,6 @@ SVG.extend([SVG.Path, SVG.Circle], {
 const whitneyBold = TextToSVG.loadSync('./src/fonts/WhitneyBoldRegular.ttf')
 const whitneySemibold = TextToSVG.loadSync('./src/fonts/WhitneySemiboldRegular.ttf')
 const whitneyMedium = TextToSVG.loadSync('./src/fonts/WhitneyMediumRegular.ttf')
-
-const strings = require('./strings.json')
 
 const PADDING = 16
 const ICON_SIZE = 50
@@ -43,32 +41,11 @@ const BUTTON_WIDTH = 94.75
 const BUTTON_HEIGHT = 40
 const BUTTON_MARGIN_LEFT = 10
 
-const BADGE_MARGIN_RIGHT = 8
-
-const Constants = require('./constants.js')
-const BADGES = {
-  VERIFIED: Constants.VERIFIED_ICON,
-  PARTNERED: Constants.PARTNER_ICON,
-  HUB: Constants.HUB_ICON
-}
-
-// Old green color: #43b581
-
 const COMMON_COLORS = {
-  joinButtonBackground: '#3ba55c',
+  joinButtonBackground: '#43b581',
   joinButtonText: '#ffffff',
-  online: '#3ba55c',
-  members: '#747f8d',
-  badges: {
-    PARTNERED: {
-      flowerStar: '#7289da',
-      icon: '#ffffff'
-    },
-    VERIFIED: {
-      flowerStar: '#3ba55c',
-      icon: '#ffffff'
-    }
-  }
+  online: '#43b581',
+  members: '#747f8d'
 }
 
 const THEMES = {
@@ -79,24 +56,16 @@ const THEMES = {
     serverIcon: '#36393f',
     acronymText: '#dcddde',
     presenceText: '#b9bbbe'
-  },
-  light: {
-    background: '#f2f3f5',
-    serverName: '#060607',
-    header: '#4f5660',
-    serverIcon: '#ffffff',
-    acronymText: '#2e3338',
-    presenceText: '#4f5660'
   }
 }
 
-module.exports = class InviteRenderer {
-  static async render (inviteCode, { language = 'en', animation = true, theme = 'dark' }) {
+module.exports = class {
+  static async render (inviteCode) {
     const invite = await Discord.getInvite(inviteCode)
     if (!invite.guild) {
       return undefined
     }
-    const locale = strings[language] || strings.en
+
     const window = svgdom.createSVGWindow()
     const document = window.document
     SVG.registerWindow(window, document)
@@ -105,7 +74,7 @@ module.exports = class InviteRenderer {
 
     const themeColors = {
       ...COMMON_COLORS,
-      ...(THEMES[theme] || THEMES.dark)
+      ...(THEMES.dark)
     }
 
     // Background
@@ -119,7 +88,7 @@ module.exports = class InviteRenderer {
 
     // Header
     const headerContainer = mainContainer.nested().width(mainContainer.width()).height(HEADER_LINE_HEIGHT)
-    headerContainer.path(whitneyBold.getD((invite.guild.features.includes('HUB') ? locale.header_hub : locale.header).toUpperCase(), { anchor: 'top left', fontSize: HEADER_FONT_SIZE })).fill(themeColors.header)
+    headerContainer.path(whitneyBold.getD((invite.guild.features.includes('HUB') ? "You've been invited to join a hub" : "You've been invited to join a server").toUpperCase(), { anchor: 'top left', fontSize: HEADER_FONT_SIZE })).fill(themeColors.header)
 
     // Content Container
     const contentContainer = mainContainer.nested()
@@ -146,7 +115,7 @@ module.exports = class InviteRenderer {
     buttonContainer.rect(BUTTON_WIDTH, BUTTON_HEIGHT)
       .radius(3)
       .fill(themeColors.joinButtonBackground)
-    const joinButtonText = buttonContainer.path(whitneyMedium.getD(locale.button, { fontSize: 14 }))
+    const joinButtonText = buttonContainer.path(whitneyMedium.getD("Join", { fontSize: 14 }))
       .fill(themeColors.joinButtonText)
     joinButtonText.move((BUTTON_WIDTH - joinButtonText.width()) / 2, (BUTTON_HEIGHT - joinButtonText.height()) / 2)
 
@@ -157,33 +126,6 @@ module.exports = class InviteRenderer {
       .height(SERVER_NAME_LINE_HEIGHT + SERVER_NAME_MARGIN_BOTTOM + PRESENCE_LINE_HEIGHT)
       .x(ICON_SIZE + PADDING, 0)
     innerContainer.y((contentContainer.height() - innerContainer.height()) / 2)
-
-    const badgeContainer = innerContainer.nested().y(2)
-
-    // Feature Badges
-    if (invite.guild.features.includes('VERIFIED') && invite.guild.features.includes('HUB')) {
-      const circle = badgeContainer
-        .circle(16)
-        .fill(themeColors.badges.VERIFIED.flowerStar)
-      for (const path of BADGES.HUB) { badgeContainer.path(path).fill(themeColors.badges.VERIFIED.icon) }
-      EXTRA_SERVER_NAME_PADDING = circle.width() + BADGE_MARGIN_RIGHT
-    } else if (invite.guild.features.includes('VERIFIED')) {
-      const flowerStar = badgeContainer
-        .path(Constants.SPECIAL_BADGE)
-        .fill(themeColors.badges.VERIFIED.flowerStar)
-      badgeContainer
-        .path(BADGES.VERIFIED)
-        .fill(themeColors.badges.VERIFIED.icon)
-      EXTRA_SERVER_NAME_PADDING = flowerStar.width() + BADGE_MARGIN_RIGHT
-    } else if (invite.guild.features.includes('PARTNERED')) {
-      const flowerStar = badgeContainer
-        .path(Constants.SPECIAL_BADGE)
-        .fill(themeColors.badges.PARTNERED.flowerStar)
-      badgeContainer
-        .path(BADGES.PARTNERED)
-        .fill(themeColors.badges.PARTNERED.icon)
-      EXTRA_SERVER_NAME_PADDING = flowerStar.width() + BADGE_MARGIN_RIGHT
-    }
 
     // Server Name
     const serverNameText = innerContainer.path(whitneySemibold.getD(invite.guild.name, { anchor: 'top left', fontSize: SERVER_NAME_SIZE }))
@@ -200,7 +142,7 @@ module.exports = class InviteRenderer {
     presenceContainer.circle(PRESENCE_DOT_SIZE)
       .fill(themeColors.online)
       .y((PRESENCE_LINE_HEIGHT - PRESENCE_DOT_SIZE) / 2)
-    const presenceText = presenceContainer.path(whitneySemibold.getD(locale.online.replace('{{count}}', invite.approximate_presence_count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')), { fontSize: PRESENCE_FONT_SIZE }))
+    const presenceText = presenceContainer.path(whitneySemibold.getD(`${invite.approximate_presence_count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} Online`, { fontSize: PRESENCE_FONT_SIZE }))
       .fill(themeColors.presenceText)
       .x(PRESENCE_DOT_SIZE + PRESENCE_DOT_MARGIN_RIGHT)
     presenceText.y((PRESENCE_LINE_HEIGHT - presenceText.height()) / 2)
@@ -208,7 +150,7 @@ module.exports = class InviteRenderer {
       .fill(themeColors.members)
       .y((PRESENCE_LINE_HEIGHT - PRESENCE_DOT_SIZE) / 2)
       .x(PRESENCE_DOT_SIZE + PRESENCE_DOT_MARGIN_RIGHT + presenceText.width() + PRESENCE_TEXT_MARGIN_RIGHT)
-    const membersText = presenceContainer.path(whitneySemibold.getD(locale.members.replace('{{count}}', invite.approximate_member_count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')), { fontSize: PRESENCE_FONT_SIZE }))
+    const membersText = presenceContainer.path(whitneySemibold.getD(`${invite.approximate_member_count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} Members`, { fontSize: PRESENCE_FONT_SIZE }))
       .fill(themeColors.presenceText)
       .x(PRESENCE_DOT_SIZE + PRESENCE_DOT_MARGIN_RIGHT + presenceText.width() + PRESENCE_TEXT_MARGIN_RIGHT + PRESENCE_DOT_SIZE + PRESENCE_DOT_MARGIN_RIGHT)
     membersText.y((PRESENCE_LINE_HEIGHT - membersText.height()) / 2)
